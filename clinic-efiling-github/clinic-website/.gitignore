@@ -1,0 +1,21 @@
+# Ignore sensitive config files
+config.php
+
+# Ignore uploaded files
+uploads/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# No zip files allowed
+*.zip
+*.rar
+*.tar.gz
