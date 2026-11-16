@@ -1,5 +1,7 @@
 # Clinic E-Filing System
 
+**Repository:** https://github.com/ThatoMashaba/-clinic-efiling-system
+
 A secure digital patient record management system for the Nelspruit Municipal Clinic. Built with PHP 8, MySQL, HTML5, CSS3, JavaScript and Bootstrap 5.
 
 ---
@@ -84,11 +86,15 @@ clinic-efiling/
 - PHP 8.0 or higher
 - A modern web browser (Chrome, Firefox, Edge)
 
-### Step 1 — Copy files
-Extract the project and copy the `clinic-efiling` folder into:
+### Step 1 — Get the files
+Clone the repository:
 ```
-C:\xampp\htdocs\clinic-efiling\
+cd C:\xampp\htdocs
+git clone https://github.com/ThatoMashaba/-clinic-efiling-system.git clinic-repo
 ```
+Then copy the `clinic-repo\clinic-efiling-github\clinic-website` folder into `C:\xampp\htdocs\` and rename it to `clinic-efiling`, so the site runs at `http://localhost/clinic-efiling`.
+
+Alternatively, click **Code → Download ZIP** on GitHub, extract it, and copy the `clinic-website` folder the same way.
 
 ### Step 2 — Start XAMPP
 Open XAMPP Control Panel and start:
