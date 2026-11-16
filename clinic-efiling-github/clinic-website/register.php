@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'db.php';
+require_once 'sa_id.php';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -17,7 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $province   = clean($conn, $_POST['province']   ?? '');
     $postal     = clean($conn, $_POST['postal']     ?? '');
 
-    if (!preg_match('/^\d{13}$/', $id_number)) { $error = 'SA ID number must be exactly 13 digits.'; }
+    [$id_ok, $id_msg, $id_dob, $id_gender] = validate_sa_id($id_number);
+    if ($id_ok) { $dob = $id_dob; }
+    if (!$id_ok) { $error = $id_msg; }
     elseif (!$first_name || !$last_name || !$gender) { $error = 'First name, last name and gender are required.'; }
     else {
         $chk = $conn->prepare("SELECT patient_id FROM patients WHERE id_number = ?");
@@ -98,7 +101,7 @@ $provinces = ['Eastern Cape','Free State','Gauteng','KwaZulu-Natal','Limpopo','M
                 <div class="form-grid-3">
                     <div class="form-group">
                         <label>Date of Birth</label>
-                        <input type="date" name="dob" value="<?= htmlspecialchars($_POST['dob'] ?? '') ?>">
+                        <input type="date" name="dob" readonly title="Filled in from the SA ID number" value="<?= htmlspecialchars($_POST['dob'] ?? '') ?>">
                     </div>
                     <div class="form-group">
                         <label>Gender <span class="req">*</span></label>
@@ -168,24 +171,34 @@ $provinces = ['Eastern Cape','Free State','Gauteng','KwaZulu-Natal','Limpopo','M
     </form>
 </div>
 <script>
+function saIdCheck(id) {
+    if (!/^\d{13}$/.test(id)) return {ok:false, partial:true, msg: id.length + ' / 13 digits entered'};
+    var yy=+id.slice(0,2), mm=+id.slice(2,4), dd=+id.slice(4,6), today=new Date(), dob=null;
+    [2000+yy, 1900+yy].some(function(y){
+        var d=new Date(y,mm-1,dd);
+        if (d.getFullYear()===y && d.getMonth()===mm-1 && d.getDate()===dd && d<=today) { dob=d; return true; }
+        return false;
+    });
+    if (!dob) return {ok:false, msg:'First 6 digits must be a valid date of birth (YYMMDD), not in the future'};
+    if (id[10]!=='0' && id[10]!=='1') return {ok:false, msg:'Digit 11 must be 0 (SA citizen) or 1 (permanent resident)'};
+    var sum=0; for (var i=0;i<13;i++){ var n=+id[i]; if(i%2===1){ n*=2; if(n>9)n-=9; } sum+=n; }
+    if (sum%10!==0) return {ok:false, msg:'Check digit is wrong - please re-check the ID number'};
+    var iso=dob.getFullYear()+'-'+String(dob.getMonth()+1).padStart(2,'0')+'-'+String(dob.getDate()).padStart(2,'0');
+    return {ok:true, dob:iso, gender:(+id.slice(6,10)>=5000)?'Male':'Female'};
+}
 function validateID(input) {
-    const msg  = document.getElementById('id-msg');
-    const prog = document.getElementById('id-prog');
-    const val  = input.value;
-    const pct  = Math.min(100, Math.round((val.length / 13) * 100));
-    prog.style.width = pct + '%';
-    if (val.length === 13 && /^\d{13}$/.test(val)) {
-        msg.textContent = '✓ Valid SA ID format';
-        msg.className   = 'id-feedback valid';
-        prog.style.background = 'var(--green)';
-    } else if (val.length > 0) {
-        msg.textContent = val.length + ' / 13 digits entered';
-        msg.className   = val.length === 13 ? 'id-feedback invalid' : 'id-feedback partial';
-        prog.style.background = val.length === 13 ? 'var(--danger)' : 'var(--warning)';
+    var msg=document.getElementById('id-msg'), prog=document.getElementById('id-prog'), val=input.value;
+    prog.style.width=Math.min(100,Math.round(val.length/13*100))+'%';
+    if (!val) { msg.textContent=''; msg.className='id-feedback'; return; }
+    var r=saIdCheck(val);
+    if (r.ok) {
+        msg.textContent='\u2713 Valid SA ID - born '+r.dob+', '+r.gender;
+        msg.className='id-feedback valid'; prog.style.background='var(--green)';
+        document.querySelector('[name=dob]').value=r.dob;
+        document.querySelector('[name=gender]').value=r.gender;
     } else {
-        msg.textContent = '';
-        msg.className   = 'id-feedback';
-        prog.style.background = 'var(--green)';
+        msg.textContent=r.msg; msg.className='id-feedback '+(r.partial?'partial':'invalid');
+        prog.style.background=r.partial?'var(--warning)':'var(--danger)';
     }
 }
 </script>

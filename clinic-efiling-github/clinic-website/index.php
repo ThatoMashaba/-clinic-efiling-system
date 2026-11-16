@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('s', $username);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
-        if ($row && (password_verify($password, $row['password']) || $password === 'Password123')) {
+        if ($row && password_verify($password, $row['password'])) {
             $_SESSION['staff_id']  = $row['staff_id'];
             $_SESSION['full_name'] = $row['full_name'];
             $_SESSION['role']      = $row['role'];
@@ -75,6 +75,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
         </form>
 
+        <div style="margin:18px 0 8px;text-align:center;font-size:12px;color:var(--slate);">or</div>
+        <div id="g_id_onload" data-client_id="YOUR_WEB_CLIENT_ID.apps.googleusercontent.com" data-callback="onGoogle" data-auto_prompt="false"></div>
+        <div class="g_id_signin" data-type="standard" data-size="large" data-text="signin_with" data-width="340"></div>
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <script>
+        function onGoogle(r) {
+            fetch('google_login.php', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_token: r.credential})})
+              .then(function(x){ return x.json(); })
+              .then(function(d){ if (d.success) { window.location = 'dashboard.php'; } else { alert(d.message); } })
+              .catch(function(){ alert('Could not reach the server'); });
+        }
+        </script>
         <div class="demo-box">
             <strong>Demo Accounts</strong> &mdash; password: <code>Password123</code><br>
             <code>sindlovu</code> Receptionist &nbsp;|&nbsp;

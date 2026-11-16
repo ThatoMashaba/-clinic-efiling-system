@@ -8,6 +8,12 @@ $total_referrals     = $conn->query("SELECT COUNT(*) c FROM referrals")->fetch_a
 $today_visits        = $conn->query("SELECT COUNT(*) c FROM consultations WHERE visit_date = CURDATE()")->fetch_assoc()['c'];
 $incoming_refs       = $conn->query("SELECT COUNT(*) c FROM referrals WHERE referral_type='Incoming'")->fetch_assoc()['c'];
 
+$followups = $conn->query(
+    "SELECT c.next_visit_date, c.diagnosis, p.patient_id, p.first_name, p.last_name, p.contact_number
+     FROM consultations c JOIN patients p ON c.patient_id = p.patient_id
+     WHERE c.next_visit_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+     ORDER BY c.next_visit_date ASC LIMIT 10"
+);
 $recent = $conn->query(
     "SELECT p.patient_id, p.first_name, p.last_name, p.id_number, p.gender, p.created_at,
             s.full_name AS registered_by
@@ -63,6 +69,28 @@ $logs = $conn->query(
             <div class="stat-value"><?= $total_referrals ?></div>
             <div class="stat-note"><?= $incoming_refs ?> incoming</div>
         </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h2>&#9679; Follow-ups due this week</h2><span class="badge badge-warning"><?= $followups->num_rows ?> due</span></div>
+        <?php if ($followups->num_rows === 0): ?>
+        <div class="card-body"><div class="alert alert-info" style="margin:0;">&#9432; No follow-up visits are due in the next 7 days.</div></div>
+        <?php else: ?>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Due</th><th>Patient</th><th>Contact</th><th>Reason</th><th></th></tr></thead>
+            <tbody>
+            <?php while ($f = $followups->fetch_assoc()): ?>
+            <tr>
+                <td><strong><?= date('D, d M', strtotime($f['next_visit_date'])) ?></strong></td>
+                <td><?= htmlspecialchars($f['first_name'] . ' ' . $f['last_name']) ?></td>
+                <td><?= htmlspecialchars($f['contact_number'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($f['diagnosis'] ?? '-') ?></td>
+                <td><a href="profile.php?id=<?= $f['patient_id'] ?>" class="btn btn-outline btn-sm">View</a></td>
+            </tr>
+            <?php endwhile; ?>
+            </tbody>
+        </table></div>
+        <?php endif; ?>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
